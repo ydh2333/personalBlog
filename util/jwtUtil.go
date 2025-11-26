@@ -19,8 +19,8 @@ func GenerateToken(name string) string {
 	c := MyClaims{
 		Username: name,
 		StandardClaims: jwt.StandardClaims{
-			NotBefore: time.Now().Unix() - 5,
-			ExpiresAt: time.Now().Unix() + 60*60,
+			NotBefore: time.Now().Unix(),
+			ExpiresAt: time.Now().Unix() + 60*60*2,
 			Issuer:    "yangduheng",
 		},
 	}
@@ -42,10 +42,9 @@ func ParseToken(ss string) (*MyClaims, error) {
 		return mySigningKey, nil
 	})
 	if err != nil {
-		fmt.Println("err:", err)
 		return nil, err
 	}
-	fmt.Println(token)
-	fmt.Println("token.claims:", token.Claims.(*MyClaims).Username)
+	//fmt.Println(token)
+	//fmt.Println("token.claims:", token.Claims.(*MyClaims).Username)
 	return token.Claims.(*MyClaims), nil
 }

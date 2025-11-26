@@ -11,6 +11,9 @@ func main() {
 
 	service.RegisterUser(router)
 	service.LoginUser(router)
+	service.UserOp(router)
+	service.PosetOp(router)
+	service.CommOp(router)
 
 	err := router.Run()
 	if err != nil {

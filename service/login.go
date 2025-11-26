@@ -12,8 +12,8 @@ import (
 var db = util.SqlConnect()
 
 func RegisterUser(r *gin.Engine) {
-	user := model.User{}
 	r.POST("/register", func(c *gin.Context) {
+		user := model.User{}
 		err := c.ShouldBind(&user)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -45,22 +45,24 @@ func RegisterUser(r *gin.Engine) {
 }
 
 func LoginUser(r *gin.Engine) {
-	user := model.User{}
 	r.POST("/login", func(c *gin.Context) {
+		user := model.User{}
 		err := c.ShouldBind(&user)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 
 		// 查询用户名是否存在
 		var storedUser model.User
-		if err = db.Where("username = ?", user.Username).First(&storedUser).Error; err != nil {
+		if err = db.Debug().Where("username = ?", user.Username).First(&storedUser).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "The username or password is incorrect.\n"})
 			return
 		}
 		// 验证密码是否正确
 		if err = bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(user.Password)); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "The username or password is incorrect.\n"})
+			return
 		}
 		// 生成jwt
 		token := util.GenerateToken(user.Username)
