@@ -31,6 +31,7 @@ func GenerateToken(name string) string {
 	// 加密
 	ss, err := t.SignedString(mySigningKey)
 	if err != nil {
+
 		fmt.Println(err)
 	}
 	return ss
