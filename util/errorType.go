@@ -33,12 +33,13 @@ var (
 	// 认证相关
 	ErrAuthFailed   = NewBusinessError(401, 1001, "用户认证失败，请重新登录")
 	ErrTokenInvalid = NewBusinessError(401, 1002, "Token 无效或已过期")
+	ErrTokenFind    = NewBusinessError(401, 1003, "未找到 Token 字段")
 	// 资源相关
 	ErrResourceNotFound = NewBusinessError(404, 2001, "请求的资源不存在")
 	ErrArticleNotFound  = NewBusinessError(404, 2002, "文章不存在")
-	ErrCommentNotFound  = NewBusinessError(404, 2003, "评论不存在")
+
 	// 参数相关
-	ErrInvalidParam = NewBusinessError(400, 3001, "请求参数无效")
+	ErrInvalidParam = NewBusinessError(400, 3001, "请求参数错误或不全")
 	// 系统相关
 	ErrDBConnect   = NewBusinessError(500, 5001, "数据库连接失败")
 	ErrSystemError = NewBusinessError(500, 5002, "服务器内部错误，请稍后重试")

@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -14,9 +13,9 @@ type MyClaims struct {
 
 var mySigningKey = []byte("MyKey")
 
-func GenerateToken(name string) string {
+func GenerateToken(name string) (string, error) {
 
-	c := MyClaims{
+	cmyClaims := MyClaims{
 		Username: name,
 		StandardClaims: jwt.StandardClaims{
 			NotBefore: time.Now().Unix(),
@@ -27,14 +26,10 @@ func GenerateToken(name string) string {
 
 	// StandardClaims
 	// MapClaims
-	t := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, cmyClaims)
 	// 加密
 	ss, err := t.SignedString(mySigningKey)
-	if err != nil {
-
-		fmt.Println(err)
-	}
-	return ss
+	return ss, err
 }
 
 func ParseToken(ss string) (*MyClaims, error) {
@@ -45,7 +40,5 @@ func ParseToken(ss string) (*MyClaims, error) {
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println(token)
-	//fmt.Println("token.claims:", token.Claims.(*MyClaims).Username)
 	return token.Claims.(*MyClaims), nil
 }

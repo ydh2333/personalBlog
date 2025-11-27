@@ -19,7 +19,11 @@ func UserOp(r *gin.Engine) {
 	r.GET("/userAll", util.MiddleWare(), func(c *gin.Context) {
 		var users []model.User
 		var outUsers []OutUser
-		db.Omit("password").Find(&users)
+		err := db.Omit("password").Find(&users).Error
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, util.ErrSystemError)
+			return
+		}
 		for _, user := range users {
 			var outuser OutUser
 			outuser.ID = user.ID
@@ -29,10 +33,10 @@ func UserOp(r *gin.Engine) {
 		}
 		// 获取操作人
 		value, _ := c.Get("username")
-		c.JSON(http.StatusOK, gin.H{
-			"code":     http.StatusOK,
-			"operator": value,
-			"data":     outUsers,
-		})
+		c.JSON(http.StatusOK, util.Success(
+			gin.H{
+				"operator": value,
+				"data":     outUsers,
+			}))
 	})
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"personalBlog/model"
 	"personalBlog/util"
@@ -24,40 +25,27 @@ func PosetOp(r *gin.Engine) {
 	r.POST("/createPost", util.MiddleWare(), func(c *gin.Context) {
 		var post model.Post
 		if err := c.ShouldBind(&post); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusBadRequest, util.ErrInvalidParam)
 			return
 		}
 
 		username, _ := c.Get("username")
 		var user model.User
 		if err := db.Omit("password").Where("username = ?", username).First(&user).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
 		post.UserID = user.ID
-		post.User = user
 		if err := db.Create(&post).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"code": http.StatusOK,
-			"data": gin.H{
+		c.JSON(http.StatusOK, util.Success(
+			gin.H{
 				"ID":       post.ID,
 				"username": user.Username,
-			},
-			"msg": "success.",
-		})
+			}))
 	})
 
 	// 读取文章列表
@@ -65,10 +53,7 @@ func PosetOp(r *gin.Engine) {
 
 		var storedPosts []model.Post
 		if err := db.Find(&storedPosts).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
 
@@ -84,24 +69,25 @@ func PosetOp(r *gin.Engine) {
 			postLists = append(postLists, post)
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"code": http.StatusOK,
-			"data": gin.H{
-				"posts": postLists,
-			},
-			"total": len(storedPosts),
-			"msg":   "success.",
-		})
+		c.JSON(http.StatusOK, util.Success(
+			gin.H{
+				"data": gin.H{
+					"posts": postLists,
+				},
+				"total": len(storedPosts),
+			}))
 	})
 	// 根据id获取文章
 	r.GET("/getPost/:id", util.MiddleWare(), func(c *gin.Context) {
 		id := c.Param("id")
 		var storedPost model.Post
-		if err := db.Find(&storedPost, id).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+		if err := db.Where("id=?", id).First(&storedPost).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				customErr := util.NewBusinessError(404, 2002, fmt.Sprintf("ID为%s的文章不存在", id))
+				_ = c.AbortWithError(http.StatusNotFound, customErr)
+			} else {
+				_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
+			}
 			return
 		}
 		var post PostDetail
@@ -111,13 +97,7 @@ func PosetOp(r *gin.Engine) {
 		post.Title = storedPost.Title
 		post.Content = storedPost.Content
 		post.UserID = storedPost.UserID
-		c.JSON(http.StatusOK, gin.H{
-			"code": http.StatusOK,
-			"data": gin.H{
-				"post": post,
-			},
-			"msg": "success.",
-		})
+		c.JSON(http.StatusOK, util.Success(post))
 	})
 	// 更新文章
 	r.POST("/updatePost", util.MiddleWare(), func(c *gin.Context) {
@@ -127,16 +107,10 @@ func PosetOp(r *gin.Engine) {
 		err := db.Where("id = ?", postId).First(&post).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"code": -1,
-					"msg":  "Data does not exist.",
-				})
-				return
+				_ = c.AbortWithError(http.StatusNotFound, util.ErrArticleNotFound)
+			} else {
+				_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			}
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
 			return
 		}
 
@@ -144,41 +118,26 @@ func PosetOp(r *gin.Engine) {
 		username, _ := c.Get("username")
 		var userOprate model.User
 		if err := db.Omit("password").Where("username = ?", username).First(&userOprate).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
 		if post.UserID != userOprate.ID {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code": -1,
-				"msg":  "Not the author of the article.",
-			})
+			c.JSON(http.StatusBadRequest, util.NewBusinessError(400, 3002, "非作者本人，无法更新文章"))
 			return
 		}
 
 		var UpdatePost model.Post
 		if err := c.ShouldBind(&UpdatePost); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusBadRequest, util.ErrInvalidParam)
 			return
 		}
 
 		// 更新
 		if err := db.Debug().Model(&post).Where("id=?", postId).Updates(model.Post{Title: UpdatePost.Title, Content: UpdatePost.Content}).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"code": http.StatusOK,
-			"msg":  "success.",
-		})
+		c.JSON(http.StatusOK, util.Success(nil))
 	})
 
 	// 删除文章
@@ -189,16 +148,10 @@ func PosetOp(r *gin.Engine) {
 		err := db.Where("id = ?", postId).First(&post).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"code": -1,
-					"msg":  "Data does not exist.",
-				})
-				return
+				_ = c.AbortWithError(http.StatusNotFound, util.ErrArticleNotFound)
+			} else {
+				_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			}
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
 			return
 		}
 
@@ -206,31 +159,19 @@ func PosetOp(r *gin.Engine) {
 		username, _ := c.Get("username")
 		var userOperate model.User
 		if err := db.Omit("password").Where("username = ?", username).First(&userOperate).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
 		if post.UserID != userOperate.ID {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code": -1,
-				"msg":  "Not the author of the article.",
-			})
+			c.JSON(http.StatusBadRequest, util.NewBusinessError(400, 3002, "非作者本人，无法更新文章"))
 			return
 		}
 
 		// 删除
 		if err := db.Debug().Where("id=?", postId).Delete(&model.Post{}).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  -1,
-				"error": err.Error(),
-			})
+			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"code": http.StatusOK,
-			"msg":  "success.",
-		})
+		c.JSON(http.StatusOK, util.Success(nil))
 	})
 }
