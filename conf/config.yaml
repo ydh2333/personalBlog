@@ -1,0 +1,19 @@
+consoleLoggingEnabled: true
+encodeLogsAsJson: true
+fileLoggingEnabled: true
+directory: "./logs/"
+filename: "./logs"
+maxSize: 1
+maxBackups: 10
+maxAge: 30
+level: 1
+db:
+  host: "127.0.0.1"
+  port: 3306
+  username: "root"
+  password: "root"
+  db_name: "personal_blog"
+  charset: "utf8mb4"
+jwt:
+  secret: your-secret-key-change-in-production
+  expiration: 3600

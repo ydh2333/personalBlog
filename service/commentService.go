@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func CommOp(r *gin.Engine) {
+func CommService(r *gin.Engine) {
 	// 创建评论
 	r.POST("/createComm", util.MiddleWare(), func(c *gin.Context) {
 		var comm model.Comment

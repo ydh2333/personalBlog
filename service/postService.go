@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func PosetOp(r *gin.Engine) {
+func PosetService(r *gin.Engine) {
 
 	// 创建文章
 	r.POST("/createPost", util.MiddleWare(), func(c *gin.Context) {

@@ -10,19 +10,7 @@ import (
 
 func main() {
 
-	config := util.Config{
-		ConsoleLoggingEnabled: true,
-		EncodeLogsAsJson:      true,
-		FileLoggingEnabled:    true,
-		Directory:             "./logs",
-		Filename:              "./logs/",
-		MaxSize:               1,
-		MaxBackups:            10,
-		MaxAge:                30,
-		Level:                 1,
-	}
-
-	util.InitLogger(config)
+	util.InitLogger()
 
 	router := gin.New()
 	router.Use(util.GinLogger(), util.GinRecovery(true))
@@ -35,13 +23,12 @@ func main() {
 	router.Use(util.ErrorHandler())
 	service.RegisterUser(router)
 	service.LoginUser(router)
-	service.UserOp(router)
-	service.PosetOp(router)
-	service.CommOp(router)
+	service.UserService(router)
+	service.PosetService(router)
+	service.CommService(router)
 
 	err := router.Run()
 	if err != nil {
 		panic(err)
 	}
-
 }

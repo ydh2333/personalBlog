@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -16,29 +17,30 @@ import (
 	"github.com/natefinch/lumberjack"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
+	"gopkg.in/yaml.v3"
 )
 
 // Configuration for logging
-type Config struct {
+type ConfigLog struct {
 	// Enable console logging
-	ConsoleLoggingEnabled bool
+	ConsoleLoggingEnabled bool `yaml:"consoleLoggingEnabled"`
 	// EncodeLogsAsJson makes the log framework log JSON
-	EncodeLogsAsJson bool
+	EncodeLogsAsJson bool `yaml:"encodeLogsAsJson"`
 	// FileLoggingEnabled makes the framework log to a file
 	// the fields below can be skipped if this value is false!
-	FileLoggingEnabled bool
+	FileLoggingEnabled bool `yaml:"fileLoggingEnabled"`
 	// Directory to log to to when filelogging is enabled
-	Directory string
+	Directory string `yaml:"directory"`
 	// Filename is the name of the logfile which will be placed inside the directory
-	Filename string
+	Filename string `yaml:"filename"`
 	// MaxSize the max size in MB of the logfile before it's rolled
-	MaxSize int
+	MaxSize int `yaml:"maxSize"`
 	// MaxBackups the max number of rolled files to keep
-	MaxBackups int
+	MaxBackups int `yaml:"maxBackups"`
 	// MaxAge the max age in days to keep a logfile
-	MaxAge int
+	MaxAge int `yaml:"maxAge"`
 	// Level the zerolog Level
-	Level int
+	Level int `yaml:"level"`
 }
 
 var Lg zerolog.Logger
@@ -51,7 +53,27 @@ var Lg zerolog.Logger
 //
 // The output log file will be located at /var/log/service-xyz/service-xyz.log and
 // will be rolled according to configuration set.
-func InitLogger(config Config) {
+func InitLogger() {
+
+	var config ConfigLog
+	// 读配置
+	if data, err := os.ReadFile("conf/config.yaml"); err != nil {
+		panic(fmt.Sprintf("读配置失败：%v", err))
+	} else if err := yaml.Unmarshal(data, &config); err != nil {
+		panic(fmt.Sprintf("解析YAML失败：%v", err))
+	}
+	//config := ConfigLog{
+	//	ConsoleLoggingEnabled: true,
+	//	EncodeLogsAsJson:      true,
+	//	FileLoggingEnabled:    true,
+	//	Directory:             "./logs",
+	//	Filename:              "./logs/",
+	//	MaxSize:               1,
+	//	MaxBackups:            10,
+	//	MaxAge:                30,
+	//	Level:                 1,
+	//}
+
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	zerolog.TimeFieldFormat = time.RFC3339Nano
 
@@ -109,7 +131,7 @@ func InitLogger(config Config) {
 		Msg("logging configured")
 }
 
-func newRollingFile(config Config) io.Writer {
+func newRollingFile(config ConfigLog) io.Writer {
 	if err := os.MkdirAll(config.Directory, 0744); err != nil {
 		Lg.Error().Err(err).Str("path", config.Directory).Msg("can't create log directory")
 		return nil
@@ -170,7 +192,7 @@ func GinRecovery(stack bool) gin.HandlerFunc {
 						Send()
 
 					// If the connection is dead, we can't write a status to it.
-					c.Error(err.(error)) // nolint: errcheck
+					_ = c.Error(err.(error)) // nolint: errcheck
 					c.Abort()
 					return
 				}

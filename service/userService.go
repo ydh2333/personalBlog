@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UserOp(r *gin.Engine) {
+func UserService(r *gin.Engine) {
 	// 获取所有用户的信息
 	r.GET("/userAll", util.MiddleWare(), func(c *gin.Context) {
 
