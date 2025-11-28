@@ -10,7 +10,24 @@ import (
 
 func main() {
 
-	router := gin.Default()
+	config := util.Config{
+		ConsoleLoggingEnabled: true,
+		EncodeLogsAsJson:      true,
+		FileLoggingEnabled:    true,
+		Directory:             "./logs",
+		Filename:              "./logs/",
+		MaxSize:               1,
+		MaxBackups:            10,
+		MaxAge:                30,
+		Level:                 1,
+	}
+
+	util.InitLogger(config)
+
+	router := gin.New()
+	router.Use(util.GinLogger(), util.GinRecovery(true))
+
+	//router := gin.Default()
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, util.ErrResourceNotFound)
 	})
