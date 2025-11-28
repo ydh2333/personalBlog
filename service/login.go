@@ -2,6 +2,7 @@ package service
 
 import (
 	"net/http"
+	"personalBlog/dao"
 	"personalBlog/model"
 	"personalBlog/util"
 
@@ -9,14 +10,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var db, _ = util.SqlConnect()
-
 func RegisterUser(r *gin.Engine) {
 	// 注册
 	r.POST("/register", func(c *gin.Context) {
 		user := model.User{}
-		err := c.ShouldBind(&user)
-		if err != nil {
+
+		if err := c.ShouldBind(&user); err != nil {
 			_ = c.AbortWithError(http.StatusBadRequest, util.ErrInvalidParam)
 			return
 		}
@@ -27,11 +26,13 @@ func RegisterUser(r *gin.Engine) {
 			return
 		}
 		user.Password = string(hashedPassword)
+
 		// 入库
-		if err := db.Create(&user).Error; err != nil {
+		if err := dao.InsertUser(user); err != nil {
 			_ = c.AbortWithError(http.StatusInternalServerError, util.ErrSystemError)
 			return
 		}
+
 		// 返回结果
 		c.JSON(http.StatusOK, util.Success(
 			gin.H{
@@ -51,12 +52,12 @@ func LoginUser(r *gin.Engine) {
 			return
 		}
 
-		// 查询用户名是否存在
-		var storedUser model.User
-		if err = db.Debug().Where("username = ?", user.Username).First(&storedUser).Error; err != nil {
+		storedUser, err := dao.GetUserByUsername(user.Username)
+		if err != nil {
 			_ = c.AbortWithError(http.StatusNotFound, util.NewBusinessError(404, 2004, "用户名或密码不正确"))
 			return
 		}
+
 		// 验证密码是否正确
 		if err = bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(user.Password)); err != nil {
 			_ = c.AbortWithError(http.StatusNotFound, util.NewBusinessError(404, 2004, "用户名或密码不正确"))
