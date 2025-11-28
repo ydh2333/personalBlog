@@ -87,7 +87,7 @@ go mod download
 ### 5. 启动服务
 
 ```bash
-go run cmd/server/main.go
+go run .\main.go
 ```
 
 服务启动后，访问 `http://127.0.0.1:8080/对应接口` 即可调用接口
