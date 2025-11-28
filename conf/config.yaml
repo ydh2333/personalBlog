@@ -15,5 +15,5 @@ db:
   db_name: "personal_blog"
   charset: "utf8mb4"
 jwt:
-  secret: your-secret-key-change-in-production
+  secret: my-secret-key-ydh
   expiration: 3600
